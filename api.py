@@ -85,9 +85,16 @@ async def delete_weather(record_id: int, db: AsyncSession = Depends(get_db)):
     await db.delete(record)
     await db.commit()
 
+    await manager.broadcast_json({
+        "type": "weather_update",
+        "action": "deleted",
+        "record_id": record_id
+    })
+
     await publish_nats("delete", {"id": record_id})
 
 @router.post("/weather/parse")
 async def run_parser(parse: ParseRequest, background_tasks: BackgroundTasks, db: AsyncSession = Depends(get_db)):
     background_tasks.add_task(background_weather_parser, db, parse.city_slug)
     return {"status": "started"}
+
